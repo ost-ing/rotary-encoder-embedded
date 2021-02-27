@@ -8,7 +8,7 @@
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use embedded_hal::digital::v2::InputPin;
 
-/// Velocity type alias
+/// Velocity type, the value is between 0.0 and 1.0
 pub type Velocity = f32;
 
 /// Direction of Rotary Encoder rotation
