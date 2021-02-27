@@ -1,4 +1,4 @@
-# rotary-encoder
+# rotary-encoder-embedded
 A rotary encoder library for embedded rust applications
 
 ## features

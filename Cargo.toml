@@ -1,9 +1,9 @@
 [package]
-name = "rotary-encoder"
+name = "rotary-encoder-embedded"
 version = "0.0.1"
 authors = ["Oliver Stenning <oliver@ostenning.com>"]
 edition = "2018"
-description = "A rotary-encoder library built with embedded-hal "
+description = "A rotary-encoder library built with embedded-hal"
 keywords = ["embedded-hal", "driver", "rotary", "encoder"]
 categories = ["embedded", "hardware-support", "no-std"]
 license = "MIT"
