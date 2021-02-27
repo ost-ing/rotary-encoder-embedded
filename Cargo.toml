@@ -1,0 +1,11 @@
+[package]
+name = "rotary-encoder"
+version = "0.1.0"
+authors = ["Oliver Stenning <oliver@ostenning.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+embedded-hal = { version = "0.2.4", features = ["unproven"] }
+chrono = { version = "0.4.19", default-features = false }
