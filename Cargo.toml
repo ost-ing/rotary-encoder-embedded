@@ -3,6 +3,12 @@ name = "rotary-encoder"
 version = "0.0.1"
 authors = ["Oliver Stenning <oliver@ostenning.com>"]
 edition = "2018"
+description = "A rotary-encoder library built with embedded-hal "
+keywords = ["embedded-hal", "driver", "rotary", "encoder"]
+categories = ["embedded", "hardware-support", "no-std"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/ostenning/rotary-encoder"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
