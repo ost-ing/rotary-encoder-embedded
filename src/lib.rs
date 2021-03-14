@@ -38,13 +38,18 @@ const DEFAULT_VELOCITY_ACTION_MS: i64 = 25;
 pub struct RotaryEncoder<DT, CLK> {
     pin_dt: DT,
     pin_clk: CLK,
+    pos_calc: i8,
+    transition: u8,
+    direction: Direction,
+}
+
+/// Rotary Encoder with velocity
+pub struct RotaryEncoderWithVelocity<DT, CLK> {
+    rotary_encoder: RotaryEncoder<DT, CLK>,
     velocity: Velocity,
     velocity_inc_factor: f32,
     velocity_dec_factor: f32,
     velocity_action_ms: i64,
-    pos_calc: i8,
-    transition: u8,
-    direction: Direction,
     previous_time: NaiveDateTime,
 }
 
@@ -54,6 +59,67 @@ where
     CLK: InputPin,
 {
     /// Initiates a new Rotary Encoder, taking two InputPins [`InputPin`](https://docs.rs/embedded-hal/0.2.3/embedded_hal/digital/v2/trait.InputPin.html).
+    pub fn new(
+        pin_dt: DT,
+        pin_clk: CLK,
+    ) -> Self {
+        return RotaryEncoder {
+            pin_dt,
+            pin_clk,
+            pos_calc: 0,
+            transition: 0,
+            direction: Direction::None,
+        };
+    }
+
+    /// Borrow a mutable reference to the underlying InputPins. This is useful for clearing hardware interrupts.
+    pub fn borrow_pins(&mut self) -> (&mut DT, &mut CLK) {
+        (&mut self.pin_dt, &mut self.pin_clk)
+    }
+
+    /// Release the underying resources such as the InputPins back to the initiator
+    pub fn release(self) -> (DT, CLK) {
+        (self.pin_dt, self.pin_clk)
+    }
+
+    /// Update the state machine of the RotaryEncoder. This should be called ideally from an interrupt vector
+    /// when either the DT or CLK pins state changes. This function will update the RotaryEncoder's Direction
+    pub fn update(&mut self) {
+        let dt_state = self.pin_dt.is_high().unwrap_or_default() as u8;
+        let clk_state = self.pin_clk.is_high().unwrap_or_default() as u8;
+
+        let current = (dt_state << 1) | clk_state;
+        self.transition = (self.transition << 2) | current;
+        let index = (self.transition & 0x0F) as usize;
+        self.pos_calc = self.pos_calc + STATES[index];
+
+        if self.pos_calc == 2 || self.pos_calc == -2 {
+            self.direction = if self.pos_calc == 2 {
+                Direction::Clockwise
+            } else {
+                Direction::Anticlockwise
+            };
+
+            self.pos_calc = 0;
+            return;
+        }
+
+        self.direction = Direction::None;
+    }
+
+    /// Returns the current Direction of the RotaryEncoder
+    pub fn direction(&self) -> Direction {
+        self.direction
+    }
+}
+
+
+impl<DT, CLK> RotaryEncoderWithVelocity<DT, CLK>
+where
+    DT: InputPin,
+    CLK: InputPin,
+{
+    /// Initiates a new Rotary Encoder with velocity, taking two InputPins [`InputPin`](https://docs.rs/embedded-hal/0.2.3/embedded_hal/digital/v2/trait.InputPin.html).
     /// Optionally the behaviour of the angular velocity can be modified:
     ///   velocity_inc_factor: How quickly the velocity increases to 1.0.
     ///   velocity_dec_factor: How quickly the velocity decreases or cools-down
@@ -65,16 +131,12 @@ where
         velocity_dec_factor: Option<f32>,
         velocity_action_ms: Option<i64>,
     ) -> Self {
-        return RotaryEncoder {
-            pin_dt,
-            pin_clk,
-            pos_calc: 0,
+        return RotaryEncoderWithVelocity {
+            rotary_encoder: RotaryEncoder::new(pin_dt, pin_clk),
             velocity: 0.0,
             velocity_inc_factor: velocity_inc_factor.unwrap_or(DEFAULT_VELOCITY_INC_FACTOR),
             velocity_dec_factor: velocity_dec_factor.unwrap_or(DEFAULT_VELOCITY_DEC_FACTOR),
             velocity_action_ms: velocity_action_ms.unwrap_or(DEFAULT_VELOCITY_ACTION_MS),
-            transition: 0,
-            direction: Direction::None,
             previous_time: NaiveDateTime::new(
                 NaiveDate::from_ymd(2000, 1, 1),
                 NaiveTime::from_hms_milli(0, 0, 0, 0),
@@ -93,27 +155,21 @@ where
 
     /// Borrow a mutable reference to the underlying InputPins. This is useful for clearing hardware interrupts.
     pub fn borrow_pins(&mut self) -> (&mut DT, &mut CLK) {
-        (&mut self.pin_dt, &mut self.pin_clk)
+        self.rotary_encoder.borrow_pins()
     }
 
     /// Release the underying resources such as the InputPins back to the initiator
     pub fn release(self) -> (DT, CLK) {
-        (self.pin_dt, self.pin_clk)
+        self.rotary_encoder.release()
     }
 
     /// Update the state machine of the RotaryEncoder. This should be called ideally from an interrupt vector
     /// when either the DT or CLK pins state changes. This function will update the RotaryEncoder's
     /// Direction and current Angular Velocity.
     pub fn update(&mut self, current_time: NaiveDateTime) {
-        let dt_state = self.pin_dt.is_high().unwrap_or_default() as u8;
-        let clk_state = self.pin_clk.is_high().unwrap_or_default() as u8;
+        self.rotary_encoder.update();
 
-        let current = (dt_state << 1) | clk_state;
-        self.transition = (self.transition << 2) | current;
-        let index = (self.transition & 0x0F) as usize;
-        self.pos_calc = self.pos_calc + STATES[index];
-
-        if self.pos_calc == 4 || self.pos_calc == -4 {
+        if self.rotary_encoder.pos_calc == 4 || self.rotary_encoder.pos_calc == -4 {
             if current_time.timestamp_millis() - self.previous_time.timestamp_millis()
                 < self.velocity_action_ms
                 && self.velocity < 1.0
@@ -121,23 +177,17 @@ where
                 self.velocity += self.velocity_inc_factor;
             }
 
-            self.direction = if self.pos_calc == 4 {
-                Direction::Clockwise
-            } else {
-                Direction::Anticlockwise
-            };
-
-            self.pos_calc = 0;
+            self.rotary_encoder.pos_calc = 0;
             return;
         }
 
         self.previous_time = current_time;
-        self.direction = Direction::None;
+        self.rotary_encoder.direction = Direction::None;
     }
 
     /// Returns the current Direction of the RotaryEncoder
     pub fn direction(&self) -> Direction {
-        self.direction
+        self.rotary_encoder.direction
     }
 
     /// Returns the current angular velocity of the RotaryEncoder
