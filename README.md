@@ -10,13 +10,14 @@ A rotary encoder library for embedded rust applications
 - Implemented with embedded-hal (https://docs.rs/embedded-hal/0.2.3/embedded_hal)
 - Support for measuring angular velocity for non-linear control
 
-## example
+## examples
 
 All examples are based on the `stm32h7xx-hal`, but are compatible with any project using `embedded-hal`. 
 
 Its highly recommended to use the GPIO Interrupt driven implementation. Interrupts should occur on rising and falling edges for both `CLK` and `DT`.
 
-### simple example
+### simple implementation
+A simple example using the main loop. Its highly recommended to use the GPIO Interrupt driven implementation.
 
 ```rust
 fn main() -> ! {
@@ -45,6 +46,7 @@ fn main() -> ! {
 ```
 
 ### interrupt driven example
+Trigger GPIO pin interrupts for both DT and CLK on both rising and falling edges
 
 ```rust
 static ROTARY_ENCODER: Mutex<RefCell<Option<RotaryEncoder>>> = Mutex::new(RefCell::new(None));
@@ -111,8 +113,7 @@ fn EXTI2() {
 ```
 
 ### angular velocity example
-
-If angular velocity is required, then the following example could be used:
+If angular velocity is required, which increases complexity a little, see below: 
 
 ```rust
 fn main() -> ! {
