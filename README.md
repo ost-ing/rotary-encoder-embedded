@@ -117,18 +117,16 @@ If angular velocity is required, then the following example could be used:
 ```rust
 fn main() -> ! {
     // ... Initialize DT and CLK pins as desired. Typically PullUp Push-Pull.
-    // ... Initialize interrupt on rising and falling edge
     let mut rotary_encoder = RotaryEncoderWithVelocity::new(
         rotary_dt,
         rotary_clk,
-        // optional configuration values to tweak velocity function
-        Option::None,
-        Option::None,
-        Option::None,
     );
 
-    // Optional: to configure sensitivity if needed
-    rotary_encoder.borrow_inner().set_sensitivity(Sensitivity::Low);
+    // Optional settings
+    rotary_encoder.set_sensitivity(Sensitivity::Low);
+    rotary_encoder.set_velocity_action_ms(5);       // The window of time that the velocity may increase
+    rotary_encoder.set_velocity_inc_factor(0.2);    // How quickly the velocity increases over time
+    rotary_encoder.set_velocity_dec_factor(0.01);   // How quickly the velocity decreases over time
 
     loop {
         // Update the encoder which will compute its direction and velocity.

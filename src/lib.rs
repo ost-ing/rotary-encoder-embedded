@@ -133,27 +133,36 @@ where
 {
     /// Initiates a new Rotary Encoder with velocity, taking two InputPins [`InputPin`](https://docs.rs/embedded-hal/0.2.3/embedded_hal/digital/v2/trait.InputPin.html).
     /// Optionally the behaviour of the angular velocity can be modified:
-    ///   velocity_inc_factor: How quickly the velocity increases to 1.0.
-    ///   velocity_dec_factor: How quickly the velocity decreases or cools-down
-    ///   velocity_action_ms: The window of duration (milliseconds) that the velocity will increase
     pub fn new(
         pin_dt: DT,
         pin_clk: CLK,
-        velocity_inc_factor: Option<f32>,
-        velocity_dec_factor: Option<f32>,
-        velocity_action_ms: Option<i64>,
     ) -> Self {
         return RotaryEncoderWithVelocity {
             inner: RotaryEncoder::new(pin_dt, pin_clk),
             velocity: 0.0,
-            velocity_inc_factor: velocity_inc_factor.unwrap_or(DEFAULT_VELOCITY_INC_FACTOR),
-            velocity_dec_factor: velocity_dec_factor.unwrap_or(DEFAULT_VELOCITY_DEC_FACTOR),
-            velocity_action_ms: velocity_action_ms.unwrap_or(DEFAULT_VELOCITY_ACTION_MS),
+            velocity_inc_factor: DEFAULT_VELOCITY_INC_FACTOR,
+            velocity_dec_factor: DEFAULT_VELOCITY_DEC_FACTOR,
+            velocity_action_ms: DEFAULT_VELOCITY_ACTION_MS,
             previous_time: NaiveDateTime::new(
                 NaiveDate::from_ymd(2000, 1, 1),
                 NaiveTime::from_hms_milli(0, 0, 0, 0),
             ),
         };
+    }
+
+    /// Set the velocity_inc_factor. How quickly the velocity increases to 1.0.
+    pub fn set_velocity_inc_factor(&mut self, inc_factor: f32) {
+        self.velocity_inc_factor = inc_factor;
+    }
+
+    /// Set the velocity_dec_factor. How quickly the velocity decreases or cools-down
+    pub fn set_velocity_dec_factor(&mut self, dec_factor: f32) {
+        self.velocity_dec_factor = dec_factor;
+    }
+
+    /// Set the velocity_action_ms. The window of duration (milliseconds) that the velocity will increase
+    pub fn set_velocity_action_ms(&mut self, action_ms: i64) {
+        self.velocity_action_ms = action_ms;
     }
 
     /// This function should be called periodically, either via a timer or the main loop.
@@ -168,6 +177,11 @@ where
     /// Borrow a mutable reference to the underlying InputPins. This is useful for clearing hardware interrupts.
     pub fn borrow_pins(&mut self) -> (&mut DT, &mut CLK) {
         self.inner.borrow_pins()
+    }
+
+    /// Set the sensitivity of the rotary encoder
+    pub fn set_sensitivity(&mut self, sensitivity: Sensitivity) {
+        self.inner.sensitivity = sensitivity;
     }
 
     /// Borrow a reference to the underlying RotaryEncoder. Useful for configuring the RotaryEncoder
