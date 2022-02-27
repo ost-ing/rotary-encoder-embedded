@@ -11,7 +11,7 @@ A rotary encoder library for embedded rust applications
 - Heapless & no standard library
 - 2-bit gray code lookup table implementation
 - Implemented with embedded-hal (https://docs.rs/embedded-hal/0.2.7/embedded_hal)
-- Experimental support for measuring angular velocity for non-linear control
+- Experimental support for measuring angular velocity for non-linear control (gated behind the `angular-velocity` feature flag)
 
 ## examples
 
