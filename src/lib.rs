@@ -70,14 +70,14 @@ where
 {
     /// Initiates a new Rotary Encoder, taking two InputPins [`InputPin`](https://docs.rs/embedded-hal/0.2.3/embedded_hal/digital/v2/trait.InputPin.html).
     pub fn new(pin_dt: DT, pin_clk: CLK) -> Self {
-        return RotaryEncoder {
+        RotaryEncoder {
             pin_dt,
             pin_clk,
             pos_calc: 0,
             transition: 0,
             sensitivity: Sensitivity::Default,
             direction: Direction::None,
-        };
+        }
     }
 
     /// Set the sensitivity of the rotary encoder
@@ -104,7 +104,7 @@ where
         let current = (dt_state << 1) | clk_state;
         self.transition = (self.transition << 2) | current;
         let index = (self.transition & 0x0F) as usize;
-        self.pos_calc = self.pos_calc + STATES[index];
+        self.pos_calc += STATES[index];
 
         let sensitivity = self.sensitivity as i8;
         if self.pos_calc == sensitivity || self.pos_calc == -sensitivity {
@@ -216,10 +216,10 @@ where
     /// The Angular Velocity is a value between 0.0 and 1.0
     /// This is useful for incrementing/decrementing a value in an exponential fashion
     pub fn velocity(&self) -> Velocity {
-        return if self.velocity < 0.0 {
+        if self.velocity < 0.0 {
             0.0
         } else {
             self.velocity
-        };
+        }
     }
 }
