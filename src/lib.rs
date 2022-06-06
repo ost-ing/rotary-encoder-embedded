@@ -165,8 +165,8 @@ where
     /// This function will reduce the angular velocity over time, the amount is configurable via the constructor
     pub fn decay_velocity(&mut self) {
         self.velocity -= self.velocity_dec_factor;
-        if self.velocity < -1.0 {
-            self.velocity = -1.0;
+        if self.velocity < 0.0 {
+            self.velocity = 0.0;
         }
     }
 
@@ -200,6 +200,9 @@ where
         if self.inner.direction() != Direction::None {
             if current_time - self.previous_time < self.velocity_action_ms && self.velocity < 1.0 {
                 self.velocity += self.velocity_inc_factor;
+                if self.velocity > 1.0 {
+                    self.velocity = 1.0;
+                }
             }
             return;
         }
@@ -216,10 +219,6 @@ where
     /// The Angular Velocity is a value between 0.0 and 1.0
     /// This is useful for incrementing/decrementing a value in an exponential fashion
     pub fn velocity(&self) -> Velocity {
-        if self.velocity < 0.0 {
-            0.0
-        } else {
-            self.velocity
-        }
+        self.velocity
     }
 }
