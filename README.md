@@ -131,7 +131,7 @@ fn main() -> ! {
     loop {
         // Update the encoder which will compute its direction and velocity
         // As velocity is a function of time, we need the current time
-        // current_time should be derived from the RTC and SysTick
+        // current_time should be a monotonously rising time in ms (akin to Arduino's `millis()`)
         rotary_encoder.update(current_time);
         // Get the velocity
         let velocity = rotary_encoder.velocity();
