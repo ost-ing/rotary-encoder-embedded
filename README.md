@@ -16,9 +16,8 @@ A rotary encoder library for embedded rust applications
 ## examples
 
 Examples use the `stm32h7xx-hal` crate and are compatible with any project using `embedded-hal`. 
-It is recommended to use the `interrupt driven example`.
 
-### simple example
+### polling example
 
 ```rust
 fn main() -> ! {
