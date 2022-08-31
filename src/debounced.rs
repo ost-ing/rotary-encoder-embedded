@@ -19,8 +19,8 @@ where
     CLK: InputPin,
 {
     pub fn decay(&mut self, dt: f32) {
-        // In a quater of a second the value of factor should go to 0.
-        let dec = dt * 4.0;
+        // In a fraction of a second the value of factor should go to 0.
+        let dec = dt * 12.0;
         let mut factor = self.mode.factor;
         if factor >= 0.0 {
             factor -= dt;
@@ -56,18 +56,12 @@ where
             DIR_CCW => Direction::Anticlockwise,
             _ => Direction::None,
         };
+
         if direction != Direction::None
             && (millis - self.mode.last_update_millis)
-                > (55 - (25 as f32 * self.mode.factor) as u64)
+                > (60 - (40 as f32 * self.mode.factor) as u64)
         {
-            let mut factor = self.mode.factor;
-            if factor < 1.0 {
-                factor += 0.25;
-                if factor > 1.0 {
-                    factor = 1.0;
-                }
-            }
-            self.mode.factor = factor;
+            self.mode.factor = (self.mode.factor + 0.2).min(1.0);
             self.mode.table_state = 0;
             self.mode.last_update_millis = millis;
             self.direction = direction;
