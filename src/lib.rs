@@ -15,6 +15,7 @@ pub mod debounced;
 #[cfg(feature = "debounce")]
 use debounced::DebouncedMode;
 use embedded_hal::digital::v2::InputPin;
+use table::{DIR_CCW, DIR_CW, STATE_TABLE_FULL_STEPS};
 
 /// Direction of Rotary Encoder rotation
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -58,7 +59,10 @@ where
 }
 
 /// Default Mode
-pub struct DefaultMode;
+pub struct DefaultMode {
+    table_state: u8,
+}
+
 impl<DT, CLK> RotaryEncoder<DefaultMode, DT, CLK>
 where
     DT: InputPin,
@@ -70,7 +74,21 @@ where
             pin_dt,
             pin_clk,
             direction: Direction::None,
-            mode: DefaultMode {},
+            mode: DefaultMode { table_state: 0 },
         }
+    }
+    /// Updates the Rotary Encoder, updating the `direction` property
+    pub fn update(&mut self) {
+        let dt_state = self.pin_dt.is_high().unwrap_or_default() as u8;
+        let clk_state = self.pin_clk.is_high().unwrap_or_default() as u8;
+        let pin_state = dt_state << 1 | clk_state;
+        self.mode.table_state =
+            STATE_TABLE_FULL_STEPS[self.mode.table_state as usize & 0x0F][pin_state as usize];
+        let dir = self.mode.table_state & 0x30;
+        self.direction = match dir {
+            DIR_CW => Direction::Clockwise,
+            DIR_CCW => Direction::Anticlockwise,
+            _ => Direction::None,
+        };
     }
 }
