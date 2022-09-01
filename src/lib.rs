@@ -1,21 +1,25 @@
 //! # rotary-encoder
 //! A rotary encoder library built for embedded applications
 
-// #![deny(missing_docs)]
-// #![deny(warnings)]
+#![deny(missing_docs)]
+#![deny(warnings)]
 #![no_std]
 
 mod table;
 
-#[cfg(feature = "angular-velocity")]
-pub mod angular;
-#[cfg(feature = "debounce")]
+#[cfg(feature = "full-step")]
+/// FullStepMode
+pub mod full_step;
+
+#[cfg(feature = "debounced")]
+/// DebouncedMode
 pub mod debounced;
 
-#[cfg(feature = "debounce")]
-use debounced::DebouncedMode;
+#[cfg(feature = "angular-velocity")]
+/// AngularVelocityMode
+pub mod angular_velocity;
+
 use embedded_hal::digital::v2::InputPin;
-use table::{DIR_CCW, DIR_CW, STATE_TABLE_FULL_STEPS};
 
 /// Direction of Rotary Encoder rotation
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -29,6 +33,7 @@ pub enum Direction {
 }
 
 /// Rotary Encoder
+
 pub struct RotaryEncoder<MODE, DT, CLK> {
     pin_dt: DT,
     pin_clk: CLK,
@@ -43,7 +48,7 @@ where
     CLK: InputPin,
 {
     /// Borrow a mutable reference to the underlying InputPins. This is useful for clearing hardware interrupts.
-    pub fn borrow_pins_mut(&mut self) -> (&mut DT, &mut CLK) {
+    pub fn pins_mut(&mut self) -> (&mut DT, &mut CLK) {
         (&mut self.pin_dt, &mut self.pin_clk)
     }
 
@@ -59,36 +64,20 @@ where
 }
 
 /// Default Mode
-pub struct DefaultMode {
-    table_state: u8,
-}
-
-impl<DT, CLK> RotaryEncoder<DefaultMode, DT, CLK>
+/// This is the plain `RotaryEncoder` with no business logic attached. In order to use the `RotaryEncoder` it must be initialized to a valid `Mode`
+pub struct InitalizeMode {}
+impl<DT, CLK> RotaryEncoder<InitalizeMode, DT, CLK>
 where
     DT: InputPin,
     CLK: InputPin,
 {
-    /// Initiates a new Rotary Encoder, taking two InputPins [`InputPin`](https://docs.rs/embedded-hal/0.2.3/embedded_hal/digital/v2/trait.InputPin.html).
+    /// Initiates a new `RotaryEncoder` in `InitalizeMode`, taking two InputPins [`InputPin`](https://docs.rs/embedded-hal/0.2.3/embedded_hal/digital/v2/trait.InputPin.html).
     pub fn new(pin_dt: DT, pin_clk: CLK) -> Self {
         RotaryEncoder {
             pin_dt,
             pin_clk,
             direction: Direction::None,
-            mode: DefaultMode { table_state: 0 },
+            mode: InitalizeMode {},
         }
-    }
-    /// Updates the Rotary Encoder, updating the `direction` property
-    pub fn update(&mut self) {
-        let dt_state = self.pin_dt.is_high().unwrap_or_default() as u8;
-        let clk_state = self.pin_clk.is_high().unwrap_or_default() as u8;
-        let pin_state = dt_state << 1 | clk_state;
-        self.mode.table_state =
-            STATE_TABLE_FULL_STEPS[self.mode.table_state as usize & 0x0F][pin_state as usize];
-        let dir = self.mode.table_state & 0x30;
-        self.direction = match dir {
-            DIR_CW => Direction::Clockwise,
-            DIR_CCW => Direction::Anticlockwise,
-            _ => Direction::None,
-        };
     }
 }

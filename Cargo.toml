@@ -12,8 +12,9 @@ repository = "https://github.com/ostenning/rotary-encoder-embedded"
 
 [dependencies]
 embedded-hal = { version = "0.2.7", features = ["unproven"] }
-log = "=0.4.11"
 
 [features]
+default = ["angular-velocity"]
+full-step = []
+debounced = []
 angular-velocity = []
-debounce = []
