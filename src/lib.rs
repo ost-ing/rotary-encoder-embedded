@@ -63,7 +63,7 @@ where
     }
 }
 
-/// Default Mode
+/// InitializeMode
 /// This is the plain `RotaryEncoder` with no business logic attached. In order to use the `RotaryEncoder` it must be initialized to a valid `Mode`
 pub struct InitalizeMode {}
 impl<DT, CLK> RotaryEncoder<InitalizeMode, DT, CLK>
