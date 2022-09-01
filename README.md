@@ -12,12 +12,10 @@ A rotary encoder library for embedded rust applications
 - Suitable for gray-code incremental encoders
 - Implemented with embedded-hal (https://docs.rs/embedded-hal/0.2.7/embedded_hal)
 
-
 ## modes
 
 The `RotaryEncoder` can operate in a number of different modes, these modes provide different types of feature sets and are individually gated behind feature flags to keep the binary size to a minimum.
 The following modes are currently provided:
-
 
 | Feature flag  | Mode           | Desc.  |
 | ------------- |-------------| -----|
@@ -56,6 +54,7 @@ fn main() -> ! {
     }
 }
 ```
+
 ## `DebounceMode` example
 
 Trigger GPIO pin interrupts for both `DT` and `CLK` on both rising and falling edges
