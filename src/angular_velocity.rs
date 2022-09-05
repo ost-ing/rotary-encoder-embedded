@@ -1,4 +1,3 @@
-use crate::table::{full::STATE_TABLE_FULL_STEPS, DIR_CCW, DIR_CW};
 use crate::Direction;
 use crate::RotaryEncoder;
 use embedded_hal::digital::v2::InputPin;
@@ -12,10 +11,15 @@ const DEFAULT_VELOCITY_ACTION_MS: u64 = 25;
 /// Velocity type, the value is between 0.0 and 1.0
 pub type Velocity = f32;
 
+// For debouncing of pins, use 0x0f (b00001111) and 0x0c (b00001100) etc.
+const PIN_MASK: u8 = 0x03;
+const PIN_EDGE: u8 = 0x02;
+
 /// AngularVelocityMode
 /// Uses the full-step table with additional angular-velocity measurement
 pub struct AngularVelocityMode {
-    table_state: u8,
+    /// The pin state
+    pin_state: [u8; 2],
     /// The instantaneous velocity
     velocity: Velocity,
     /// The increasing factor
@@ -62,17 +66,22 @@ where
     /// Direction and current Angular Velocity.
     /// * `current_time` - Current timestamp in ms (strictly monotonously increasing)
     pub fn update(&mut self, current_time_millis: u64) {
-        let dt_state = self.pin_dt.is_high().unwrap_or_default() as u8;
-        let clk_state = self.pin_clk.is_high().unwrap_or_default() as u8;
-        let pin_state = dt_state << 1 | clk_state;
-        self.mode.table_state =
-            STATE_TABLE_FULL_STEPS[self.mode.table_state as usize & 0x0F][pin_state as usize];
-        let dir = self.mode.table_state & 0x30;
-        self.direction = match dir {
-            DIR_CW => Direction::Clockwise,
-            DIR_CCW => Direction::Anticlockwise,
-            _ => Direction::None,
-        };
+        self.mode.pin_state[0] =
+            (self.mode.pin_state[0] << 1) | self.pin_dt.is_high().unwrap_or_default() as u8;
+        self.mode.pin_state[1] =
+            (self.mode.pin_state[1] << 1) | self.pin_clk.is_high().unwrap_or_default() as u8;
+
+        let a = self.mode.pin_state[0] & PIN_MASK;
+        let b = self.mode.pin_state[1] & PIN_MASK;
+
+        let mut dir: Direction = Direction::None;
+
+        if a == PIN_EDGE && b == 0x00 {
+            dir = Direction::Anticlockwise;
+        } else if b == PIN_EDGE && a == 0x00 {
+            dir = Direction::Clockwise;
+        }
+        self.direction = dir;
 
         if self.direction != Direction::None {
             if current_time_millis - self.mode.previous_time_millis < self.mode.velocity_action_ms
@@ -108,7 +117,7 @@ where
             pin_dt: self.pin_dt,
             pin_clk: self.pin_clk,
             mode: AngularVelocityMode {
-                table_state: 0,
+                pin_state: [0xFF, 2],
                 velocity: 0.0,
                 previous_time_millis: 0,
                 velocity_action_ms: DEFAULT_VELOCITY_ACTION_MS,

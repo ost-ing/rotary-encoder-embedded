@@ -5,19 +5,12 @@
 #![deny(warnings)]
 #![no_std]
 
-mod table;
-
-#[cfg(feature = "full-step")]
-/// FullStepMode
-pub mod full_step;
-
-#[cfg(feature = "debounced")]
-/// DebouncedMode
-pub mod debounced;
-
+/// Angular velocity mode
 #[cfg(feature = "angular-velocity")]
-/// AngularVelocityMode
 pub mod angular_velocity;
+/// Standard mode
+#[cfg(feature = "standard")]
+pub mod standard;
 
 use embedded_hal::digital::v2::InputPin;
 
