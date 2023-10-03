@@ -47,7 +47,7 @@ fn timer_interrupt_handler() {
         Direction::Clockwise => {
             // Increment some value
         }
-        Direction::AntiClockwise => {
+        Direction::Anticlockwise => {
             // Decrement some value
         }
         Direction::None => {
