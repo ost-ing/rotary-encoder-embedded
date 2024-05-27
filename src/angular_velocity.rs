@@ -67,7 +67,11 @@ where
     /// Direction and current Angular Velocity.
     /// * `current_time` - Current timestamp in ms (strictly monotonously increasing)
     pub fn update(&mut self, current_time_millis: u64) -> Direction {
-        self.mode.update(self.pin_dt.is_high().unwrap_or_default(), self.pin_clk.is_high().unwrap_or_default(), current_time_millis)
+        self.mode.update(
+            self.pin_dt.is_high().unwrap_or_default(),
+            self.pin_clk.is_high().unwrap_or_default(),
+            current_time_millis,
+        )
     }
 
     /// Returns the current angular velocity of the RotaryEncoder
@@ -90,7 +94,7 @@ impl AngularVelocityMode {
             velocity_inc_factor: DEFAULT_VELOCITY_INC_FACTOR,
         }
     }
-    
+
     /// Update to determine the direction
     pub fn update(
         &mut self,
@@ -98,10 +102,8 @@ impl AngularVelocityMode {
         clk_state: bool,
         current_time_millis: u64,
     ) -> Direction {
-        self.pin_state[0] =
-            (self.pin_state[0] << 1) | dt_state as u8;
-        self.pin_state[1] =
-            (self.pin_state[1] << 1) | clk_state as u8;
+        self.pin_state[0] = (self.pin_state[0] << 1) | dt_state as u8;
+        self.pin_state[1] = (self.pin_state[1] << 1) | clk_state as u8;
 
         let a = self.pin_state[0] & PIN_MASK;
         let b = self.pin_state[1] & PIN_MASK;

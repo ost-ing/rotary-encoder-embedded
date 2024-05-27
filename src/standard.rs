@@ -22,8 +22,10 @@ where
 {
     /// Updates the `RotaryEncoder`, updating the `direction` property
     pub fn update(&mut self) -> Direction {
-        self.mode
-            .update(self.pin_dt.is_high().unwrap_or_default(), self.pin_clk.is_high().unwrap_or_default())
+        self.mode.update(
+            self.pin_dt.is_high().unwrap_or_default(),
+            self.pin_clk.is_high().unwrap_or_default(),
+        )
     }
 }
 
