@@ -27,18 +27,26 @@ pub enum Direction {
 
 /// Rotary Encoder
 
-pub struct RotaryEncoder<MODE, DT, CLK> {
+pub struct RotaryEncoder<LOGIC, DT, CLK> {
     pin_dt: DT,
     pin_clk: CLK,
-    direction: Direction,
-    mode: MODE,
+    logic: LOGIC,
+}
+
+/// Core logic interface definition.
+pub trait RotaryEncoderLogic {
+    /// Updates the `RotaryEncoder`, updating the `direction` property
+    fn update(&mut self, pin_dt: bool, pin_clk: bool);
+    /// Gets the last detected direction
+    fn direction(&self) -> Direction;
 }
 
 /// Common
-impl<DT, CLK, MODE> RotaryEncoder<MODE, DT, CLK>
+impl<LOGIC, DT, CLK> RotaryEncoder<LOGIC, DT, CLK>
 where
     DT: InputPin,
     CLK: InputPin,
+    LOGIC: RotaryEncoderLogic,
 {
     /// Borrow a mutable reference to the underlying InputPins. This is useful for clearing hardware interrupts.
     pub fn pins_mut(&mut self) -> (&mut DT, &mut CLK) {
@@ -52,13 +60,30 @@ where
 
     /// Returns the current Direction of the RotaryEncoder
     pub fn direction(&self) -> Direction {
-        self.direction
+        self.logic.direction()
+    }
+    /// a
+    pub fn update(&mut self) {
+        self.logic.update(
+            self.pin_dt.is_high().unwrap_or_default(),
+            self.pin_clk.is_high().unwrap_or_default(),
+        );
     }
 }
 
 /// InitializeMode
 /// This is the plain `RotaryEncoder` with no business logic attached. In order to use the `RotaryEncoder` it must be initialized to a valid `Mode`
 pub struct InitalizeMode {}
+
+/// Empty core logic implementation for InitalizeMode
+impl RotaryEncoderLogic for InitalizeMode {
+    fn update(&mut self, _pin_dt: bool, _pin_clk: bool) {}
+
+    fn direction(&self) -> Direction {
+        Direction::None
+    }
+}
+
 impl<DT, CLK> RotaryEncoder<InitalizeMode, DT, CLK>
 where
     DT: InputPin,
@@ -69,8 +94,14 @@ where
         RotaryEncoder {
             pin_dt,
             pin_clk,
-            direction: Direction::None,
-            mode: InitalizeMode {},
+            logic: InitalizeMode {},
         }
     }
+}
+
+/// Generic struct for the core logic
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RotaryEncoderCore<MODE> {
+    direction: Direction,
+    mode: MODE,
 }
