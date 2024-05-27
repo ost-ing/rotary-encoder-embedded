@@ -1,8 +1,7 @@
+use embedded_hal::digital::v2::InputPin;
+
 use crate::Direction;
 use crate::RotaryEncoder;
-use crate::RotaryEncoderCore;
-use crate::RotaryEncoderLogic;
-use embedded_hal::digital::v2::InputPin;
 
 /// StandardMode
 /// This mode is best used when polled at ~900Hz.
@@ -16,14 +15,33 @@ pub struct StandardMode {
 const PIN_MASK: u8 = 0x03;
 const PIN_EDGE: u8 = 0x02;
 
-impl RotaryEncoderLogic for RotaryEncoderCore<StandardMode> {
+impl<DT, CLK> RotaryEncoder<StandardMode, DT, CLK>
+where
+    DT: InputPin,
+    CLK: InputPin,
+{
     /// Updates the `RotaryEncoder`, updating the `direction` property
-    fn update(&mut self, pin_dt_value: bool, pin_clk_value: bool) {
-        self.mode.pin_state[0] = (self.mode.pin_state[0] << 1) | pin_dt_value as u8;
-        self.mode.pin_state[1] = (self.mode.pin_state[1] << 1) | pin_clk_value as u8;
+    pub fn update(&mut self) -> Direction {
+        self.mode
+            .update(self.pin_dt.is_high().unwrap_or_default(), self.pin_clk.is_high().unwrap_or_default())
+    }
+}
 
-        let a = self.mode.pin_state[0] & PIN_MASK;
-        let b = self.mode.pin_state[1] & PIN_MASK;
+impl StandardMode {
+    /// Initialises the StandardMode
+    pub fn new() -> Self {
+        Self {
+            pin_state: [0xFF, 2],
+        }
+    }
+
+    /// Update to determine the direction
+    pub fn update(&mut self, dt_value: bool, clk_value: bool) -> Direction {
+        self.pin_state[0] = (self.pin_state[0] << 1) | dt_value as u8;
+        self.pin_state[1] = (self.pin_state[1] << 1) | clk_value as u8;
+
+        let a = self.pin_state[0] & PIN_MASK;
+        let b = self.pin_state[1] & PIN_MASK;
 
         let mut dir: Direction = Direction::None;
 
@@ -32,11 +50,8 @@ impl RotaryEncoderLogic for RotaryEncoderCore<StandardMode> {
         } else if b == PIN_EDGE && a == 0x00 {
             dir = Direction::Clockwise;
         }
-        self.direction = dir;
-    }
 
-    fn direction(&self) -> Direction {
-        self.direction
+        dir
     }
 }
 
@@ -46,23 +61,17 @@ where
     CLK: InputPin,
 {
     /// Configure `RotaryEncoder` to use the standard API
-    pub fn into_standard_mode(self) -> RotaryEncoder<RotaryEncoderCore<StandardMode>, DT, CLK> {
+    pub fn into_standard_mode(self) -> RotaryEncoder<StandardMode, DT, CLK> {
         RotaryEncoder {
             pin_dt: self.pin_dt,
             pin_clk: self.pin_clk,
-            logic: RotaryEncoderCore::<StandardMode>::new(),
+            mode: StandardMode::new(),
         }
     }
 }
 
-impl RotaryEncoderCore<StandardMode> {
-    /// Constructor for new Core logic instance with StandardMode
-    pub fn new() -> Self {
-        Self {
-            mode: StandardMode {
-                pin_state: [0xFF, 2],
-            },
-            direction: Direction::None,
-        }
+impl Default for StandardMode {
+    fn default() -> Self {
+        Self::new()
     }
 }

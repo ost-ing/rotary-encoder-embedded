@@ -1,6 +1,7 @@
+use embedded_hal::digital::v2::InputPin;
+
 use crate::Direction;
 use crate::RotaryEncoder;
-use embedded_hal::digital::v2::InputPin;
 
 /// Default angular velocity increasing factor
 const DEFAULT_VELOCITY_INC_FACTOR: f32 = 0.2;
@@ -65,14 +66,45 @@ where
     /// when either the DT or CLK pins state changes. This function will update the RotaryEncoder's
     /// Direction and current Angular Velocity.
     /// * `current_time` - Current timestamp in ms (strictly monotonously increasing)
-    pub fn update(&mut self, current_time_millis: u64) {
-        self.mode.pin_state[0] =
-            (self.mode.pin_state[0] << 1) | self.pin_dt.is_high().unwrap_or_default() as u8;
-        self.mode.pin_state[1] =
-            (self.mode.pin_state[1] << 1) | self.pin_clk.is_high().unwrap_or_default() as u8;
+    pub fn update(&mut self, current_time_millis: u64) -> Direction {
+        self.mode.update(self.pin_dt.is_high().unwrap_or_default(), self.pin_clk.is_high().unwrap_or_default(), current_time_millis)
+    }
 
-        let a = self.mode.pin_state[0] & PIN_MASK;
-        let b = self.mode.pin_state[1] & PIN_MASK;
+    /// Returns the current angular velocity of the RotaryEncoder
+    /// The Angular Velocity is a value between 0.0 and 1.0
+    /// This is useful for incrementing/decrementing a value in an exponential fashion
+    pub fn velocity(&self) -> Velocity {
+        self.mode.velocity
+    }
+}
+
+impl AngularVelocityMode {
+    /// Initialises the AngularVelocityMode
+    pub fn new() -> Self {
+        Self {
+            pin_state: [0xFF, 2],
+            velocity: 0.0,
+            previous_time_millis: 0,
+            velocity_action_ms: DEFAULT_VELOCITY_ACTION_MS,
+            velocity_dec_factor: DEFAULT_VELOCITY_DEC_FACTOR,
+            velocity_inc_factor: DEFAULT_VELOCITY_INC_FACTOR,
+        }
+    }
+    
+    /// Update to determine the direction
+    pub fn update(
+        &mut self,
+        dt_state: bool,
+        clk_state: bool,
+        current_time_millis: u64,
+    ) -> Direction {
+        self.pin_state[0] =
+            (self.pin_state[0] << 1) | dt_state as u8;
+        self.pin_state[1] =
+            (self.pin_state[1] << 1) | clk_state as u8;
+
+        let a = self.pin_state[0] & PIN_MASK;
+        let b = self.pin_state[1] & PIN_MASK;
 
         let mut dir: Direction = Direction::None;
 
@@ -81,28 +113,27 @@ where
         } else if b == PIN_EDGE && a == 0x00 {
             dir = Direction::Clockwise;
         }
-        self.direction = dir;
 
-        if self.direction != Direction::None {
-            if current_time_millis - self.mode.previous_time_millis < self.mode.velocity_action_ms
-                && self.mode.velocity < 1.0
+        if dir != Direction::None {
+            if current_time_millis - self.previous_time_millis < self.velocity_action_ms
+                && self.velocity < 1.0
             {
-                self.mode.velocity += self.mode.velocity_inc_factor;
-                if self.mode.velocity > 1.0 {
-                    self.mode.velocity = 1.0;
+                self.velocity += self.velocity_inc_factor;
+                if self.velocity > 1.0 {
+                    self.velocity = 1.0;
                 }
             }
-            return;
+        } else {
+            self.previous_time_millis = current_time_millis;
         }
 
-        self.mode.previous_time_millis = current_time_millis;
+        dir
     }
+}
 
-    /// Returns the current angular velocity of the RotaryEncoder
-    /// The Angular Velocity is a value between 0.0 and 1.0
-    /// This is useful for incrementing/decrementing a value in an exponential fashion
-    pub fn velocity(&self) -> Velocity {
-        self.mode.velocity
+impl Default for AngularVelocityMode {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -116,15 +147,7 @@ where
         RotaryEncoder {
             pin_dt: self.pin_dt,
             pin_clk: self.pin_clk,
-            mode: AngularVelocityMode {
-                pin_state: [0xFF, 2],
-                velocity: 0.0,
-                previous_time_millis: 0,
-                velocity_action_ms: DEFAULT_VELOCITY_ACTION_MS,
-                velocity_dec_factor: DEFAULT_VELOCITY_DEC_FACTOR,
-                velocity_inc_factor: DEFAULT_VELOCITY_INC_FACTOR,
-            },
-            direction: Direction::None,
+            mode: AngularVelocityMode::new(),
         }
     }
 }
