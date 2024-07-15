@@ -5,6 +5,7 @@
 #![deny(warnings)]
 #![no_std]
 
+#[cfg(feature = "angular-velocity")]
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use embedded_hal::digital::v2::InputPin;
 
@@ -33,12 +34,13 @@ pub enum Sensitivity {
 /// State table for recognizing valid rotary encoder values
 const STATES: [i8; 16] = [0, -1, 1, 0, 1, 0, 0, -1, -1, 0, 0, 1, 0, 1, -1, 0];
 
+#[cfg(feature = "angular-velocity")]
 /// Default angular velocity increasing factor
 const DEFAULT_VELOCITY_INC_FACTOR: f32 = 0.2;
-
+#[cfg(feature = "angular-velocity")]
 /// Default angular velocity decreasing factor
 const DEFAULT_VELOCITY_DEC_FACTOR: f32 = 0.01;
-
+#[cfg(feature = "angular-velocity")]
 /// Angular velocity action window duration in milliseconds
 const DEFAULT_VELOCITY_ACTION_MS: i64 = 25;
 
@@ -52,6 +54,7 @@ pub struct RotaryEncoder<DT, CLK> {
     direction: Direction,
 }
 
+#[cfg(feature = "angular-velocity")]
 /// Rotary Encoder with velocity
 pub struct RotaryEncoderWithVelocity<DT, CLK> {
     inner: RotaryEncoder<DT, CLK>,
@@ -126,6 +129,7 @@ where
     }
 }
 
+#[cfg(feature = "angular-velocity")]
 impl<DT, CLK> RotaryEncoderWithVelocity<DT, CLK>
 where
     DT: InputPin,
