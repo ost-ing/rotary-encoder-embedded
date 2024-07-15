@@ -1,10 +1,10 @@
 [package]
 name = "rotary-encoder-embedded"
-version = "0.0.3"
+version = "0.0.4"
 authors = ["Oliver Stenning <code@ostenning.com>"]
 edition = "2018"
 description = "A rotary-encoder library built with embedded-hal"
-keywords = ["embedded-hal", "driver", "rotary", "encoder"]
+keywords = ["embedded-hal", "rotary-encoder", "rotary", "encoder"]
 categories = ["embedded", "hardware-support", "no-std"]
 license = "MIT"
 readme = "README.md"
