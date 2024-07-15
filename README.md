@@ -1,10 +1,15 @@
 # rotary-encoder-embedded
 A rotary encoder library for embedded rust applications
+https://crates.io/crates/rotary-encoder-embedded
 
 ## features
  - Full no-std support
  - Implemented with embedded-hal (https://docs.rs/embedded-hal/0.2.3/embedded_hal)
  - Support for measuring angular velocity for non-linear control
+
+## installation
+
+Add the package via Cargo: `rotary-encoder-embedded = "0.0.1"`
 
 ## example
 
