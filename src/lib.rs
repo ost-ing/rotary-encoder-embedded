@@ -21,6 +21,14 @@ pub enum Direction {
     /// Anti-clockwise direction
     Anticlockwise,
 }
+/// The Sensitivity of the Rotary Encoder
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Sensitivity {
+    /// Default sensitivity
+    Default = 2,
+    /// Low sensitivity
+    Low = 4,
+}
 
 /// State table for recognizing valid rotary encoder values
 const STATES: [i8; 16] = [0, -1, 1, 0, 1, 0, 0, -1, -1, 0, 0, 1, 0, 1, -1, 0];
@@ -39,13 +47,14 @@ pub struct RotaryEncoder<DT, CLK> {
     pin_dt: DT,
     pin_clk: CLK,
     pos_calc: i8,
+    sensitivity: Sensitivity,
     transition: u8,
     direction: Direction,
 }
 
 /// Rotary Encoder with velocity
 pub struct RotaryEncoderWithVelocity<DT, CLK> {
-    rotary_encoder: RotaryEncoder<DT, CLK>,
+    inner: RotaryEncoder<DT, CLK>,
     velocity: Velocity,
     velocity_inc_factor: f32,
     velocity_dec_factor: f32,
@@ -59,17 +68,20 @@ where
     CLK: InputPin,
 {
     /// Initiates a new Rotary Encoder, taking two InputPins [`InputPin`](https://docs.rs/embedded-hal/0.2.3/embedded_hal/digital/v2/trait.InputPin.html).
-    pub fn new(
-        pin_dt: DT,
-        pin_clk: CLK,
-    ) -> Self {
+    pub fn new(pin_dt: DT, pin_clk: CLK) -> Self {
         return RotaryEncoder {
             pin_dt,
             pin_clk,
             pos_calc: 0,
             transition: 0,
+            sensitivity: Sensitivity::Default,
             direction: Direction::None,
         };
+    }
+
+    /// Set the sensitivity of the rotary encoder
+    pub fn set_sensitivity(&mut self, sensitivity: Sensitivity) {
+        self.sensitivity = sensitivity;
     }
 
     /// Borrow a mutable reference to the underlying InputPins. This is useful for clearing hardware interrupts.
@@ -93,8 +105,9 @@ where
         let index = (self.transition & 0x0F) as usize;
         self.pos_calc = self.pos_calc + STATES[index];
 
-        if self.pos_calc == 2 || self.pos_calc == -2 {
-            self.direction = if self.pos_calc == 2 {
+        let sensitivity = self.sensitivity as i8;
+        if self.pos_calc == sensitivity || self.pos_calc == -sensitivity {
+            self.direction = if self.pos_calc == sensitivity {
                 Direction::Clockwise
             } else {
                 Direction::Anticlockwise
@@ -112,7 +125,6 @@ where
         self.direction
     }
 }
-
 
 impl<DT, CLK> RotaryEncoderWithVelocity<DT, CLK>
 where
@@ -132,7 +144,7 @@ where
         velocity_action_ms: Option<i64>,
     ) -> Self {
         return RotaryEncoderWithVelocity {
-            rotary_encoder: RotaryEncoder::new(pin_dt, pin_clk),
+            inner: RotaryEncoder::new(pin_dt, pin_clk),
             velocity: 0.0,
             velocity_inc_factor: velocity_inc_factor.unwrap_or(DEFAULT_VELOCITY_INC_FACTOR),
             velocity_dec_factor: velocity_dec_factor.unwrap_or(DEFAULT_VELOCITY_DEC_FACTOR),
@@ -146,7 +158,7 @@ where
 
     /// This function should be called periodically, either via a timer or the main loop.
     /// This function will reduce the angular velocity over time, the amount is configurable via the constructor
-    pub fn tick(&mut self) {
+    pub fn decay_velocity(&mut self) {
         self.velocity -= self.velocity_dec_factor;
         if self.velocity < -1.0 {
             self.velocity = -1.0;
@@ -155,39 +167,41 @@ where
 
     /// Borrow a mutable reference to the underlying InputPins. This is useful for clearing hardware interrupts.
     pub fn borrow_pins(&mut self) -> (&mut DT, &mut CLK) {
-        self.rotary_encoder.borrow_pins()
+        self.inner.borrow_pins()
+    }
+
+    /// Borrow a reference to the underlying RotaryEncoder. Useful for configuring the RotaryEncoder
+    pub fn borrow_inner(&mut self) -> &mut RotaryEncoder<DT, CLK> {
+        &mut self.inner
     }
 
     /// Release the underying resources such as the InputPins back to the initiator
     pub fn release(self) -> (DT, CLK) {
-        self.rotary_encoder.release()
+        self.inner.release()
     }
 
     /// Update the state machine of the RotaryEncoder. This should be called ideally from an interrupt vector
     /// when either the DT or CLK pins state changes. This function will update the RotaryEncoder's
     /// Direction and current Angular Velocity.
     pub fn update(&mut self, current_time: NaiveDateTime) {
-        self.rotary_encoder.update();
+        self.inner.update();
 
-        if self.rotary_encoder.pos_calc == 4 || self.rotary_encoder.pos_calc == -4 {
+        if self.inner.direction() != Direction::None {
             if current_time.timestamp_millis() - self.previous_time.timestamp_millis()
                 < self.velocity_action_ms
                 && self.velocity < 1.0
             {
                 self.velocity += self.velocity_inc_factor;
             }
-
-            self.rotary_encoder.pos_calc = 0;
             return;
         }
 
         self.previous_time = current_time;
-        self.rotary_encoder.direction = Direction::None;
     }
 
     /// Returns the current Direction of the RotaryEncoder
     pub fn direction(&self) -> Direction {
-        self.rotary_encoder.direction
+        self.inner.direction
     }
 
     /// Returns the current angular velocity of the RotaryEncoder

@@ -1,37 +1,62 @@
 # rotary-encoder-embedded
+
 A rotary encoder library for embedded rust applications
 
 - https://crates.io/crates/rotary-encoder-embedded
 
 ## features
- - Full no-std support
- - Implemented with embedded-hal (https://docs.rs/embedded-hal/0.2.3/embedded_hal)
- - Support for measuring angular velocity for non-linear control
 
-## installation
-
-Add the package via Cargo: `rotary-encoder-embedded = "0.0.1"`
+- Full no-std support
+- Implemented with embedded-hal (https://docs.rs/embedded-hal/0.2.3/embedded_hal)
+- Support for measuring angular velocity for non-linear control
 
 ## example
 
-Note: Quick example based on the `stm32h7xx-hal`.
+All examples are based on the `stm32h7xx-hal`, but are compatible with any project using `embedded-hal`. 
 
+Its highly recommended to use the GPIO Interrupt driven implementation. Interrupts should occur on rising and falling edges for both `CLK` and `DT`.
+
+### simple example
+
+```rust
+fn main() -> ! {
+    // ... Initialize DT and CLK pins as desired. Typically PullUp Push-Pull.
+    let mut rotary_encoder = RotaryEncoder::new(
+        rotary_dt,
+        rotary_clk,
+    );
+
+    // Optional: to configure sensitivity if needed
+    rotary_encoder.set_sensitivity(Sensitivity::Low);
+
+    loop {
+        // Update the encoder, which will compute its direction
+        rotary_encoder.update();
+
+        // Get the rotary values
+        let direction = rotary_encoder.direction();
+        if direction == Direction::Clockwise {
+            // Increment some value
+        } else if direction == Direction::AntiClockwise {
+            // Decrement some value
+        }
+    }
+}
 ```
+
+### interrupt driven example
+
+```rust
 static ROTARY_ENCODER: Mutex<RefCell<Option<RotaryEncoder>>> = Mutex::new(RefCell::new(None));
 
 fn main() -> ! {
     // ... Initialize DT and CLK pins as desired. Typically PullUp Push-Pull.
     // ... Initialize interrupt on rising and falling edge
-    // ... Initialize a timer to periodically update rotary-encoder and other control systems
-
     interrupt::free(|cs| {
         ROTARY_ENCODER.borrow(cs).replace(Some(
             RotaryEncoder::new(
                 rotary_dt,
                 rotary_clk,
-                Option::None, // optional velocity_inc_factor
-                Option::None, // optional velocity_dec_factor
-                Option::None, // optional velocity_action_ms
             )
         ));
     });
@@ -39,29 +64,12 @@ fn main() -> ! {
     loop {}
 }
 
-#[interrupt]
-fn TIM1() {
-    // Periodic timer update interrupt vector
-    interrupt::free(|cs| {
-        if let Some(ref mut rotary_encoder) = ROTARY_ENCODER.borrow(cs).borrow_mut().deref_mut() {
-            // Note: This could also be run inside the main loop. 
-            // The rotary_encoders internal velocity is decremented by `velocity_dec_factor` when
-            // this function is called
-            rotary_encoder.tick();
-        }
-    });
-}
-
 fn handle_rotary(rotary_encoder: &mut RotaryEncoder) {
-    let current_time = ... // Get this NaiveDateTime based from your RTC or SysTick handler
-    
-    // Update the state of the rotary-encoder, computing its current direction and angular velocity
-    rotary_encoder.update(current_time);
+    // Update the state of the rotary-encoder
+    rotary_encoder.update();
 
     // Get the rotary values
     let direction = rotary_encoder.direction();
-    let velocity = rotary_encoder.velocity();
-
     if direction == Direction::Clockwise {
         // Increment some value
     } else if direction == Direction::AntiClockwise {
@@ -79,8 +87,8 @@ fn EXTI1() {
                 .borrow_pins()
                 .0
                 .clear_interrupt_pending_bit();
-            
-            handle_rotary(rotary_encoder);            
+
+            handle_rotary(rotary_encoder);
         }
     });
 }
@@ -95,10 +103,52 @@ fn EXTI2() {
                 .borrow_pins()
                 .1
                 .clear_interrupt_pending_bit();
-            
+
             handle_rotary(rotary_encoder);
         }
     });
 }
+```
 
+### angular velocity example
+
+If angular velocity is required, then the following example could be used:
+
+```rust
+fn main() -> ! {
+    // ... Initialize DT and CLK pins as desired. Typically PullUp Push-Pull.
+    // ... Initialize interrupt on rising and falling edge
+    let mut rotary_encoder = RotaryEncoderWithVelocity::new(
+        rotary_dt,
+        rotary_clk,
+        // optional configuration values to tweak velocity function
+        Option::None,
+        Option::None,
+        Option::None,
+    );
+
+    // Optional: to configure sensitivity if needed
+    rotary_encoder.borrow_inner().set_sensitivity(Sensitivity::Low);
+
+    loop {
+        // Update the encoder which will compute its direction and velocity.
+        // As velocity is a function of time, we need the current time.
+        // current_time should be derived from the RTC and SysTick.
+        rotary_encoder.update(current_time);
+
+        // Get the direction & velocity
+        let direction = rotary_encoder.direction();
+        let velocity = rotary_encoder.velocity();
+
+        if direction == Direction::Clockwise {
+            // Increment some value
+        } else if direction == Direction::AntiClockwise {
+            // Decrement some value
+        }
+
+        // As velocity is a function of time, we need to reduce its value over time.
+        // This value could also be called from a Timer.
+        rotary_encoder.decay_velocity();
+    }
+}
 ```
