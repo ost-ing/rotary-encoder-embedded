@@ -1,6 +1,6 @@
 [package]
 name = "rotary-encoder"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["Oliver Stenning <oliver@ostenning.com>"]
 edition = "2018"
 
