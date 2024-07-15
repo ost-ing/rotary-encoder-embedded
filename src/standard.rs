@@ -1,9 +1,12 @@
 use crate::Direction;
 use crate::RotaryEncoder;
+use crate::RotaryEncoderCore;
+use crate::RotaryEncoderLogic;
 use embedded_hal::digital::v2::InputPin;
 
 /// StandardMode
 /// This mode is best used when polled at ~900Hz.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct StandardMode {
     /// The pin state
     pin_state: [u8; 2],
@@ -13,17 +16,11 @@ pub struct StandardMode {
 const PIN_MASK: u8 = 0x03;
 const PIN_EDGE: u8 = 0x02;
 
-impl<DT, CLK> RotaryEncoder<StandardMode, DT, CLK>
-where
-    DT: InputPin,
-    CLK: InputPin,
-{
+impl RotaryEncoderLogic for RotaryEncoderCore<StandardMode> {
     /// Updates the `RotaryEncoder`, updating the `direction` property
-    pub fn update(&mut self) {
-        self.mode.pin_state[0] =
-            (self.mode.pin_state[0] << 1) | self.pin_dt.is_high().unwrap_or_default() as u8;
-        self.mode.pin_state[1] =
-            (self.mode.pin_state[1] << 1) | self.pin_clk.is_high().unwrap_or_default() as u8;
+    fn update(&mut self, pin_dt_value: bool, pin_clk_value: bool) {
+        self.mode.pin_state[0] = (self.mode.pin_state[0] << 1) | pin_dt_value as u8;
+        self.mode.pin_state[1] = (self.mode.pin_state[1] << 1) | pin_clk_value as u8;
 
         let a = self.mode.pin_state[0] & PIN_MASK;
         let b = self.mode.pin_state[1] & PIN_MASK;
@@ -37,18 +34,31 @@ where
         }
         self.direction = dir;
     }
+
+    fn direction(&self) -> Direction {
+        self.direction
+    }
 }
 
-impl<DT, CLK, MODE> RotaryEncoder<MODE, DT, CLK>
+impl<LOGIC, DT, CLK> RotaryEncoder<LOGIC, DT, CLK>
 where
     DT: InputPin,
     CLK: InputPin,
 {
     /// Configure `RotaryEncoder` to use the standard API
-    pub fn into_standard_mode(self) -> RotaryEncoder<StandardMode, DT, CLK> {
+    pub fn into_standard_mode(self) -> RotaryEncoder<RotaryEncoderCore<StandardMode>, DT, CLK> {
         RotaryEncoder {
             pin_dt: self.pin_dt,
             pin_clk: self.pin_clk,
+            logic: RotaryEncoderCore::<StandardMode>::new(),
+        }
+    }
+}
+
+impl RotaryEncoderCore<StandardMode> {
+    /// Constructor for new Core logic instance with StandardMode
+    pub fn new() -> Self {
+        Self {
             mode: StandardMode {
                 pin_state: [0xFF, 2],
             },
