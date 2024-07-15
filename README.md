@@ -2,7 +2,9 @@
 
 A rotary encoder library for embedded rust applications
 
-- https://crates.io/crates/rotary-encoder-embedded
+[![crates.io](https://img.shields.io/crates/v/rotary-encoder-embedded.svg)](https://crates.io/crates/rotary-encoder-embedded)
+[![Documentation](https://docs.rs/rotary-encoder-embedded/badge.svg)](https://docs.rs/rotary-encoder-embedded)
+![Minimum Supported Rust Version](https://img.shields.io/badge/rustc-1.46+-blue.svg)
 
 ![rotary encoder](https://github.com/ostenning/images/blob/main/rotary-encoder.jpg?raw=true)
 
