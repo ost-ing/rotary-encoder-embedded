@@ -1,14 +1,14 @@
 [package]
 name = "rotary-encoder-embedded"
-version = "0.3.0"
-authors = ["Oliver Stenning <code@ostenning.com>"]
+version = "0.3.1"
+authors = ["Oliver <18360865+ost-ing@users.noreply.github.com>"]
 edition = "2018"
 description = "A rotary-encoder library built with embedded-hal"
 keywords = ["embedded-hal", "rotary-encoder", "rotary", "encoder"]
 categories = ["embedded", "hardware-support", "no-std"]
 license = "MIT"
 readme = "README.md"
-repository = "https://github.com/ostenning/rotary-encoder-embedded"
+repository = "https://github.com/ost-ing/rotary-encoder-embedded"
 
 [dependencies]
 embedded-hal = { version = "0.2.7", features = ["unproven"] }
