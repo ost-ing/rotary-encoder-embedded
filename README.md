@@ -1,6 +1,7 @@
 # rotary-encoder-embedded
 A rotary encoder library for embedded rust applications
-https://crates.io/crates/rotary-encoder-embedded
+
+- https://crates.io/crates/rotary-encoder-embedded
 
 ## features
  - Full no-std support
