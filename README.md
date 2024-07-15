@@ -38,7 +38,7 @@ fn main() -> ! {
 
 #[interrupt]
 fn EXTI1() {
-    // DT Rising or Falling edge interrupt
+    // DT rising or falling edge interrupt
     interrupt::free(|cs| {
         if let Some(ref mut rotary_encoder) = ROTARY_ENCODER.borrow(cs).borrow_mut().deref_mut() {
             let current_time = ... // Get this NaiveDateTime based from your RTC or SysTick handler
@@ -54,7 +54,7 @@ fn EXTI1() {
 
 #[interrupt]
 fn EXTI2() {
-    // CLK Rising or Falling edge interrupt
+    // CLK rising or falling edge interrupt
     interrupt::free(|cs| {
         if let Some(ref mut rotary_encoder) = ROTARY_ENCODER.borrow(cs).borrow_mut().deref_mut() {
             let current_time = ... // Get this NaiveDateTime based from your RTC or SysTick handler
