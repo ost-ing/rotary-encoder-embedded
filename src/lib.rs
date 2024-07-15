@@ -74,36 +74,50 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::{angular_velocity::AngularVelocityMode, standard::StandardMode, RotaryEncoder};
-    use embedded_hal_mock::eh0::pin::Mock;
-
-    fn get_pins() -> (Mock, Mock) {
-         (Mock::new([]), Mock::new([]))
-    }
+    use crate::{
+        angular_velocity::AngularVelocityMode, standard::StandardMode, Direction, RotaryEncoder,
+    };
+    use embedded_hal_mock::eh0::pin::{Mock, State, Transaction};
 
     #[test]
     fn standard_mode_api() {
-        let (dt, clk) = get_pins();
+        let expectations = [Transaction::get(State::High)];
+
+        let dt = Mock::new(&expectations);
+        let clk = Mock::new(&expectations);
 
         // Standard mode can be used with embedded-hal pins
         let mut encoder = RotaryEncoder::new(dt, clk).into_standard_mode();
         let _dir = encoder.update();
 
-        // Or it can be used directly, bypassing the pins 
+        // Or it can be used directly, bypassing the pins
         let mut raw_encoder = StandardMode::new();
         let _dir = raw_encoder.update(true, false);
+
+        let (mut dt, mut clk) = encoder.release();
+        dt.done();
+        clk.done();
     }
 
     #[test]
     fn angular_velocity_mode_api() {
-        let (dt, clk) = get_pins();
+        let expectations = [Transaction::get(State::High)];
+
+        let dt = Mock::new(&expectations);
+        let clk = Mock::new(&expectations);
 
         // Angular velocity mode can be used with embedded-hal pins
         let mut encoder = RotaryEncoder::new(dt, clk).into_angular_velocity_mode();
-        let _dir = encoder.update(0);
+        let dir = encoder.update(2);
+        assert_eq!(dir, Direction::None);
 
-        // Or it can be used directly, bypassing the pins 
+        // Or it can be used directly, bypassing the pins
         let mut raw_encoder = AngularVelocityMode::new();
-        let _dir = raw_encoder.update(true, false, 100);
+        let _dir = raw_encoder.update(false, false, 100);
+        assert_eq!(dir, Direction::None);
+
+        let (mut dt, mut clk) = encoder.release();
+        dt.done();
+        clk.done();
     }
 }
