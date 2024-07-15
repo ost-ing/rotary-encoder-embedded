@@ -5,8 +5,6 @@
 #![deny(warnings)]
 #![no_std]
 
-#[cfg(feature = "angular-velocity")]
-use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use embedded_hal::digital::v2::InputPin;
 
 /// Velocity type, the value is between 0.0 and 1.0
@@ -42,7 +40,7 @@ const DEFAULT_VELOCITY_INC_FACTOR: f32 = 0.2;
 const DEFAULT_VELOCITY_DEC_FACTOR: f32 = 0.01;
 #[cfg(feature = "angular-velocity")]
 /// Angular velocity action window duration in milliseconds
-const DEFAULT_VELOCITY_ACTION_MS: i64 = 25;
+const DEFAULT_VELOCITY_ACTION_MS: u64 = 25;
 
 /// Rotary Encoder
 pub struct RotaryEncoder<DT, CLK> {
@@ -61,8 +59,8 @@ pub struct RotaryEncoderWithVelocity<DT, CLK> {
     velocity: Velocity,
     velocity_inc_factor: f32,
     velocity_dec_factor: f32,
-    velocity_action_ms: i64,
-    previous_time: NaiveDateTime,
+    velocity_action_ms: u64,
+    previous_time: u64,
 }
 
 impl<DT, CLK> RotaryEncoder<DT, CLK>
@@ -72,14 +70,14 @@ where
 {
     /// Initiates a new Rotary Encoder, taking two InputPins [`InputPin`](https://docs.rs/embedded-hal/0.2.3/embedded_hal/digital/v2/trait.InputPin.html).
     pub fn new(pin_dt: DT, pin_clk: CLK) -> Self {
-        return RotaryEncoder {
+        RotaryEncoder {
             pin_dt,
             pin_clk,
             pos_calc: 0,
             transition: 0,
             sensitivity: Sensitivity::Default,
             direction: Direction::None,
-        };
+        }
     }
 
     /// Set the sensitivity of the rotary encoder
@@ -106,7 +104,7 @@ where
         let current = (dt_state << 1) | clk_state;
         self.transition = (self.transition << 2) | current;
         let index = (self.transition & 0x0F) as usize;
-        self.pos_calc = self.pos_calc + STATES[index];
+        self.pos_calc += STATES[index];
 
         let sensitivity = self.sensitivity as i8;
         if self.pos_calc == sensitivity || self.pos_calc == -sensitivity {
@@ -137,21 +135,15 @@ where
 {
     /// Initiates a new Rotary Encoder with velocity, taking two InputPins [`InputPin`](https://docs.rs/embedded-hal/0.2.3/embedded_hal/digital/v2/trait.InputPin.html).
     /// Optionally the behaviour of the angular velocity can be modified:
-    pub fn new(
-        pin_dt: DT,
-        pin_clk: CLK,
-    ) -> Self {
-        return RotaryEncoderWithVelocity {
+    pub fn new(pin_dt: DT, pin_clk: CLK) -> Self {
+        RotaryEncoderWithVelocity {
             inner: RotaryEncoder::new(pin_dt, pin_clk),
             velocity: 0.0,
             velocity_inc_factor: DEFAULT_VELOCITY_INC_FACTOR,
             velocity_dec_factor: DEFAULT_VELOCITY_DEC_FACTOR,
             velocity_action_ms: DEFAULT_VELOCITY_ACTION_MS,
-            previous_time: NaiveDateTime::new(
-                NaiveDate::from_ymd(2000, 1, 1),
-                NaiveTime::from_hms_milli(0, 0, 0, 0),
-            ),
-        };
+            previous_time: 0,
+        }
     }
 
     /// Set the velocity_inc_factor. How quickly the velocity increases to 1.0.
@@ -165,7 +157,7 @@ where
     }
 
     /// Set the velocity_action_ms. The window of duration (milliseconds) that the velocity will increase
-    pub fn set_velocity_action_ms(&mut self, action_ms: i64) {
+    pub fn set_velocity_action_ms(&mut self, action_ms: u64) {
         self.velocity_action_ms = action_ms;
     }
 
@@ -173,8 +165,8 @@ where
     /// This function will reduce the angular velocity over time, the amount is configurable via the constructor
     pub fn decay_velocity(&mut self) {
         self.velocity -= self.velocity_dec_factor;
-        if self.velocity < -1.0 {
-            self.velocity = -1.0;
+        if self.velocity < 0.0 {
+            self.velocity = 0.0;
         }
     }
 
@@ -201,15 +193,16 @@ where
     /// Update the state machine of the RotaryEncoder. This should be called ideally from an interrupt vector
     /// when either the DT or CLK pins state changes. This function will update the RotaryEncoder's
     /// Direction and current Angular Velocity.
-    pub fn update(&mut self, current_time: NaiveDateTime) {
+    /// * `current_time` - Current timestamp in ms (strictly monotonously increasing)
+    pub fn update(&mut self, current_time: u64) {
         self.inner.update();
 
         if self.inner.direction() != Direction::None {
-            if current_time.timestamp_millis() - self.previous_time.timestamp_millis()
-                < self.velocity_action_ms
-                && self.velocity < 1.0
-            {
+            if current_time - self.previous_time < self.velocity_action_ms && self.velocity < 1.0 {
                 self.velocity += self.velocity_inc_factor;
+                if self.velocity > 1.0 {
+                    self.velocity = 1.0;
+                }
             }
             return;
         }
@@ -226,10 +219,6 @@ where
     /// The Angular Velocity is a value between 0.0 and 1.0
     /// This is useful for incrementing/decrementing a value in an exponential fashion
     pub fn velocity(&self) -> Velocity {
-        return if self.velocity < 0.0 {
-            0.0
-        } else {
-            self.velocity
-        };
+        self.velocity
     }
 }
