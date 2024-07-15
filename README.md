@@ -12,28 +12,26 @@ A rotary encoder library for embedded rust applications
 - Suitable for gray-code incremental encoders
 - Implemented with embedded-hal (https://docs.rs/embedded-hal/0.2.7/embedded_hal)
 
-## modes
-
-The `RotaryEncoder` can operate in a number of different modes, these modes provide different types of feature sets and are individually gated behind feature flags to keep the binary size to a minimum.
-The following modes are currently provided:
-
-| Feature flag  | Mode           | Desc.  |
-| ------------- |----------------| -------|
-| `standard`         | `StandardMode`              | Uses a state machine for transitions |
-| `angular-velocity` | `AngularVelocityMode`       | Same as `standard` but with additional angular-velocity calculations |
-
-## `StandardMode` example
 
 ```rust
 fn main() -> ! {
     // Configure DT and CLK pins, typically pullup input
     let rotary_dt = gpio_pin_1.into_pull_up_input()
     let rotary_clk = gpio_pin_2.into_pull_up_input();
+
     // Initialize the rotary encoder
     let mut rotary_encoder = RotaryEncoder::new(
         rotary_dt,
         rotary_clk,
     ).into_standard_mode();
+    
+    // Now you can update the state of the rotary encoder and get a direction value. Call this from an update routine, timer task or interrupt
+    let _dir = rotary_encoder.update();
+
+    // Alternatively if you want to access the encoder without embedded-hal pin traits and use boolean states, you can use the mode directly:
+    let mut raw_encoder = StandardMode::new();
+    let _dir = raw_encoder.update(true, false);
+
     // ...timer initialize at 900Hz to poll the rotary encoder
     loop {}
 }
@@ -41,9 +39,9 @@ fn main() -> ! {
 fn timer_interrupt_handler() {
     // ... get rotary encoder 
     let rotary_encoder = ...
-    // Update the encoder, which will compute its direction
-    rotary_encoder.update();
-    match rotary_encoder.direction() {
+
+    // Update the encoder, which will compute and return its direction
+    match rotary_encoder.update() {
         Direction::Clockwise => {
             // Increment some value
         }

@@ -5,14 +5,12 @@
 #![deny(warnings)]
 #![no_std]
 
-/// Angular velocity mode
-#[cfg(feature = "angular-velocity")]
-pub mod angular_velocity;
-/// Standard mode
-#[cfg(feature = "standard")]
-pub mod standard;
-
 use embedded_hal::digital::v2::InputPin;
+
+/// Angular velocity api
+pub mod angular_velocity;
+/// Standard api
+pub mod standard;
 
 /// Direction of Rotary Encoder rotation
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -27,26 +25,17 @@ pub enum Direction {
 
 /// Rotary Encoder
 
-pub struct RotaryEncoder<LOGIC, DT, CLK> {
+pub struct RotaryEncoder<MODE, DT, CLK> {
+    mode: MODE,
     pin_dt: DT,
     pin_clk: CLK,
-    logic: LOGIC,
-}
-
-/// Core logic interface definition.
-pub trait RotaryEncoderLogic {
-    /// Updates the `RotaryEncoder`, updating the `direction` property
-    fn update(&mut self, pin_dt: bool, pin_clk: bool);
-    /// Gets the last detected direction
-    fn direction(&self) -> Direction;
 }
 
 /// Common
-impl<LOGIC, DT, CLK> RotaryEncoder<LOGIC, DT, CLK>
+impl<MODE, DT, CLK> RotaryEncoder<MODE, DT, CLK>
 where
     DT: InputPin,
     CLK: InputPin,
-    LOGIC: RotaryEncoderLogic,
 {
     /// Borrow a mutable reference to the underlying InputPins. This is useful for clearing hardware interrupts.
     pub fn pins_mut(&mut self) -> (&mut DT, &mut CLK) {
@@ -58,31 +47,15 @@ where
         (self.pin_dt, self.pin_clk)
     }
 
-    /// Returns the current Direction of the RotaryEncoder
-    pub fn direction(&self) -> Direction {
-        self.logic.direction()
-    }
-    /// a
-    pub fn update(&mut self) {
-        self.logic.update(
-            self.pin_dt.is_high().unwrap_or_default(),
-            self.pin_clk.is_high().unwrap_or_default(),
-        );
+    /// Borrow the underlying mode
+    pub fn mode(&mut self) -> &mut MODE {
+        &mut self.mode
     }
 }
 
 /// InitializeMode
 /// This is the plain `RotaryEncoder` with no business logic attached. In order to use the `RotaryEncoder` it must be initialized to a valid `Mode`
-pub struct InitalizeMode {}
-
-/// Empty core logic implementation for InitalizeMode
-impl RotaryEncoderLogic for InitalizeMode {
-    fn update(&mut self, _pin_dt: bool, _pin_clk: bool) {}
-
-    fn direction(&self) -> Direction {
-        Direction::None
-    }
-}
+pub struct InitalizeMode;
 
 impl<DT, CLK> RotaryEncoder<InitalizeMode, DT, CLK>
 where
@@ -94,14 +67,43 @@ where
         RotaryEncoder {
             pin_dt,
             pin_clk,
-            logic: InitalizeMode {},
+            mode: InitalizeMode {},
         }
     }
 }
 
-/// Generic struct for the core logic
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct RotaryEncoderCore<MODE> {
-    direction: Direction,
-    mode: MODE,
+#[cfg(test)]
+mod test {
+    use crate::{angular_velocity::AngularVelocityMode, standard::StandardMode, RotaryEncoder};
+    use embedded_hal_mock::eh0::pin::Mock;
+
+    fn get_pins() -> (Mock, Mock) {
+         (Mock::new([]), Mock::new([]))
+    }
+
+    #[test]
+    fn standard_mode_api() {
+        let (dt, clk) = get_pins();
+
+        // Standard mode can be used with embedded-hal pins
+        let mut encoder = RotaryEncoder::new(dt, clk).into_standard_mode();
+        let _dir = encoder.update();
+
+        // Or it can be used directly, bypassing the pins 
+        let mut raw_encoder = StandardMode::new();
+        let _dir = raw_encoder.update(true, false);
+    }
+
+    #[test]
+    fn angular_velocity_mode_api() {
+        let (dt, clk) = get_pins();
+
+        // Angular velocity mode can be used with embedded-hal pins
+        let mut encoder = RotaryEncoder::new(dt, clk).into_angular_velocity_mode();
+        let _dir = encoder.update(0);
+
+        // Or it can be used directly, bypassing the pins 
+        let mut raw_encoder = AngularVelocityMode::new();
+        let _dir = raw_encoder.update(true, false, 100);
+    }
 }

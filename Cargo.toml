@@ -1,6 +1,6 @@
 [package]
 name = "rotary-encoder-embedded"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Oliver Stenning <code@ostenning.com>"]
 edition = "2018"
 description = "A rotary-encoder library built with embedded-hal"
@@ -13,7 +13,5 @@ repository = "https://github.com/ostenning/rotary-encoder-embedded"
 [dependencies]
 embedded-hal = { version = "0.2.7", features = ["unproven"] }
 
-[features]
-default = ["standard"]
-standard = []
-angular-velocity = []
+[dev-dependencies]
+embedded-hal-mock = { version = "0.10.0", features = ["eh0"] }
