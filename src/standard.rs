@@ -1,4 +1,4 @@
-use embedded_hal::digital::v2::InputPin;
+use embedded_hal::digital::InputPin;
 
 use crate::Direction;
 use crate::RotaryEncoder;

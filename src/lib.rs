@@ -5,7 +5,7 @@
 #![deny(warnings)]
 #![no_std]
 
-use embedded_hal::digital::v2::InputPin;
+use embedded_hal::digital::InputPin;
 
 /// Angular velocity api
 pub mod angular_velocity;
@@ -77,7 +77,7 @@ mod test {
     use crate::{
         angular_velocity::AngularVelocityMode, standard::StandardMode, Direction, RotaryEncoder,
     };
-    use embedded_hal_mock::eh0::pin::{Mock, State, Transaction};
+    use embedded_hal_mock::eh1::digital::{Mock, State, Transaction};
 
     #[test]
     fn standard_mode_api() {
