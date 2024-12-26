@@ -24,7 +24,6 @@ pub enum Direction {
 }
 
 /// Rotary Encoder
-
 pub struct RotaryEncoder<MODE, DT, CLK> {
     mode: MODE,
     pin_dt: DT,
