@@ -13,7 +13,7 @@ A rotary encoder library for embedded rust applications
 
 - `no-std` support
 - Suitable for gray-code incremental encoders
-- Implemented with embedded-hal (https://docs.rs/embedded-hal/0.2.7/embedded_hal)
+- Implemented with embedded-hal (https://docs.rs/embedded-hal/1.0.0/embedded_hal/)
 
 
 ```rust
