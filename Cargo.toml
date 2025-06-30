@@ -1,6 +1,6 @@
 [package]
 name = "rotary-encoder-embedded"
-version = "0.4.0"
+version = "0.5.0"
 authors = ["Oliver <18360865+ost-ing@users.noreply.github.com>"]
 edition = "2018"
 description = "A rotary-encoder library built with embedded-hal"

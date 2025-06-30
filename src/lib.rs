@@ -3,13 +3,15 @@
 
 #![deny(missing_docs)]
 #![deny(warnings)]
-#![no_std]
+#![cfg_attr(not(test), no_std)]
 
 use embedded_hal::digital::InputPin;
 
 /// Angular velocity api
 pub mod angular_velocity;
-/// Standard api
+/// Quadrature table encoder - suitable for intentless encoders
+pub mod quadrature;
+/// Standard encoder - suitable for indented encoders
 pub mod standard;
 
 /// Direction of Rotary Encoder rotation
@@ -74,12 +76,13 @@ where
 #[cfg(test)]
 mod test {
     use crate::{
-        angular_velocity::AngularVelocityMode, standard::StandardMode, Direction, RotaryEncoder,
+        angular_velocity::AngularVelocityMode, quadrature::QuadratureTableMode,
+        standard::StandardMode, Direction, RotaryEncoder,
     };
     use embedded_hal_mock::eh1::digital::{Mock, State, Transaction};
 
     #[test]
-    fn standard_mode_api() {
+    fn standard_mode() {
         let expectations = [Transaction::get(State::High)];
 
         let dt = Mock::new(&expectations);
@@ -99,7 +102,27 @@ mod test {
     }
 
     #[test]
-    fn angular_velocity_mode_api() {
+    fn quadrature_table_mode() {
+        let expectations = [Transaction::get(State::High)];
+
+        let dt = Mock::new(&expectations);
+        let clk = Mock::new(&expectations);
+
+        // Standard mode can be used with embedded-hal pins
+        let mut encoder = RotaryEncoder::new(dt, clk).into_quadrature_table_mode(1);
+        let _dir = encoder.update();
+
+        // Or it can be used directly, bypassing the pins
+        let mut raw_encoder = QuadratureTableMode::new(1);
+        let _dir = raw_encoder.update(true, false);
+
+        let (mut dt, mut clk) = encoder.release();
+        dt.done();
+        clk.done();
+    }
+
+    #[test]
+    fn angular_velocity_mode() {
         let expectations = [Transaction::get(State::High)];
 
         let dt = Mock::new(&expectations);
