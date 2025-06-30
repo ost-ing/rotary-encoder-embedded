@@ -13,6 +13,7 @@ A rotary encoder library for embedded rust applications
 
 - `no-std` support
 - Suitable for gray-code incremental encoders
+- Multiple modes encluding `StandardMode`, `QuadratureTableMode` and `VelocityMode`
 - Implemented with embedded-hal (https://docs.rs/embedded-hal/1.0.0/embedded_hal/)
 
 
@@ -57,8 +58,3 @@ fn timer_interrupt_handler() {
     }
 }
 ```
-
-# A note about GPIO or Timer interrupt usage
-
-I've experimented a lot with different combinations in order to make Rotary Encoders behave predictably because generally speaking they are fickle at best. From my experimentation I've learnt that using GPIO pin based interrupts generally isn't a good idea because they are more prone to noise and increase the risk of misfires and jumps.
-Timers on the other hand provide a low pass filtering quality because they don't pick up higher frequency switching that GPIO interrupts do. I have found that using a Timer between 850-1000Hz seems to work best.
