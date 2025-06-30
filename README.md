@@ -7,15 +7,12 @@ A rotary encoder library for embedded rust applications
 [![Documentation](https://docs.rs/rotary-encoder-embedded/badge.svg)](https://docs.rs/rotary-encoder-embedded)
 ![Minimum Supported Rust Version](https://img.shields.io/badge/rustc-1.46+-blue.svg)
 
-![rotary encoder](https://github.com/ostenning/images/blob/main/rotary-encoder.jpg?raw=true)
-
 ## features
 
 - `no-std` support
 - Suitable for gray-code incremental encoders
 - Multiple modes encluding `StandardMode`, `QuadratureTableMode` and `VelocityMode`
 - Implemented with embedded-hal (https://docs.rs/embedded-hal/1.0.0/embedded_hal/)
-
 
 ```rust
 fn main() -> ! {
