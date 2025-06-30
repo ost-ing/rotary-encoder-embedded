@@ -89,7 +89,7 @@ impl QuadratureTableMode {
         let delta = QUAD_TABLE[idx];
         self.prev_state = curr;
         self.count += delta;
-        if self.count.abs() as u8 >= self.threshold {
+        if self.count.unsigned_abs() >= self.threshold {
             let dir = if self.count > 0 {
                 Direction::Clockwise
             } else {
